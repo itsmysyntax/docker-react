@@ -52,6 +52,50 @@ To test this image locally before publishing, build it with
 
 Then simply rebuild your images that are based on `react-base`.
 
+## CI
+
+When running the CI on a branch, CircleCI builds the docker image, and if it works, run a job in the dependant repos. To add a new repo, do the following:
+
+### Configuring docker-react build
+
+Add a job in the `commit` workflow
+```yaml
+- check-dependant-repo:
+    requires:
+      - build
+    repo: <your_repo_name>
+    owner: <your_repo_owner> # not needed if it's bayesimpact
+```
+
+### Configure your repo's build
+
+Add a job `test-for-base-change` that runs your tests that depends on the version of the bayesimpact/react-base docker image.
+
+This job must use the `REACT_BASE_TAG` environment variable as the docker image tag.
+
+To make sure the job uses the updated version of the packages on Dependabot PRs, use the OVERRIDDEN_PACKAGE environment variable to upgrade your package.json file. This variable is the line added in docker-react’s package.json, so it’s of the form `    “<package>”: “<package_version>”,`
+
+#### Using REACT_BASE_TAG (required)
+If you build an image on top of `bayesimpact/react-base`, just replace your FROM command with
+```Dockerfile
+ARG REACT_BASE_TAG
+FROM bayesimpact/react-base:${REACT_BASE_TAG:-latest}
+```
+
+And run `docker build --build-arg REACT_BASE_TAG <your_usual_build>`.
+
+You can also do this using `docker-compose`. In your `docker-compose.yml`:
+```yaml
+service_name:
+    ...
+    build:
+      ...
+      args:
+        ...
+        - REACT_BASE_TAG
+```
+And then run `docker-compose build service_name`
+
 
 ## Publishing the image
 
